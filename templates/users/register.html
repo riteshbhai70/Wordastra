@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Wordastra{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        margin: -2rem -15px 0;
+        padding: 2rem 15px;
+    }
+    .auth-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+        max-width: 500px;
+        width: 100%;
+    }
+    .auth-header {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        padding: 3rem 2rem;
+        text-align: center;
+        color: white;
+    }
+    .auth-header h2 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .auth-header p {
+        margin: 0.5rem 0 0;
+        opacity: 0.9;
+    }
+    .auth-body {
+        padding: 3rem 2.5rem;
+    }
+    .auth-footer {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2><i class="fas fa-user-plus"></i> Create Account</h2>
+            <p>Join Wordastra community today</p>
+        </div>
+
+        <div class="auth-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="mb-3">
+                    {{ form.username.label_tag }}
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <div class="text-danger">{{ form.username.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.email.label_tag }}
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="text-danger">{{ form.email.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.first_name.label_tag }}
+                    {{ form.first_name }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.last_name.label_tag }}
+                    {{ form.last_name }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.password1.label_tag }}
+                    <div class="input-group">
+                        {{ form.password1 }}
+                        <button class="btn btn-outline-secondary" type="button" id="toggle-password1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" type="button" id="copy-password1">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    {% if form.password1.errors %}
+                        <div class="text-danger">{{ form.password1.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.password2.label_tag }}
+                    <div class="input-group">
+                        {{ form.password2 }}
+                        <button class="btn btn-outline-secondary" type="button" id="toggle-password2">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" type="button" id="copy-password2">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    {% if form.password2.errors %}
+                        <div class="text-danger">{{ form.password2.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-success w-100">Register</button>
+                
+                <div class="text-center my-3">
+                    <span class="text-muted">or</span>
+                </div>
+                
+                <button type="button" id="clerk-signup" class="btn btn-outline-success w-100">
+                    <i class="fas fa-user-plus"></i> Sign up with Clerk
+                </button>
+            </form>
+        </div>
+
+        <div class="auth-footer">
+            <p class="mb-0">Already have an account? <a href="{% url 'login' %}" class="fw-bold text-decoration-none">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://{{ CLERK_FRONTEND_API }}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
+<script>
+    // Initialize Clerk
+    const clerk = new Clerk('{{ CLERK_PUBLISHABLE_KEY }}');
+    clerk.load().then(() => {
+        console.log('Clerk loaded');
+        
+        // Toggle password visibility for password1
+        const toggleBtn1 = document.getElementById('toggle-password1');
+        if (toggleBtn1) {
+            toggleBtn1.addEventListener('click', function() {
+                const passwordInput = document.getElementById('id_password1');
+                const icon = this.querySelector('i');
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        }
+
+        // Copy password1
+        const copyBtn1 = document.getElementById('copy-password1');
+        if (copyBtn1) {
+            copyBtn1.addEventListener('click', function() {
+                const passwordInput = document.getElementById('id_password1');
+                passwordInput.select();
+                navigator.clipboard.writeText(passwordInput.value).then(() => {
+                    const originalIcon = this.querySelector('i').className;
+                    this.querySelector('i').className = 'fas fa-check';
+                    setTimeout(() => {
+                        this.querySelector('i').className = originalIcon;
+                    }, 1000);
+                });
+            });
+        }
+
+        // Toggle password visibility for password2
+        const toggleBtn2 = document.getElementById('toggle-password2');
+        if (toggleBtn2) {
+            toggleBtn2.addEventListener('click', function() {
+                const passwordInput = document.getElementById('id_password2');
+                const icon = this.querySelector('i');
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        }
+
+        // Copy password2
+        const copyBtn2 = document.getElementById('copy-password2');
+        if (copyBtn2) {
+            copyBtn2.addEventListener('click', function() {
+                const passwordInput = document.getElementById('id_password2');
+                passwordInput.select();
+                navigator.clipboard.writeText(passwordInput.value).then(() => {
+                    const originalIcon = this.querySelector('i').className;
+                    this.querySelector('i').className = 'fas fa-check';
+                    setTimeout(() => {
+                        this.querySelector('i').className = originalIcon;
+                    }, 1000);
+                });
+            });
+        }
+
+        // Clerk sign up
+        const clerkBtn = document.getElementById('clerk-signup');
+        if (clerkBtn) {
+            clerkBtn.addEventListener('click', function() {
+                clerk.openSignUp({ 
+                    afterSignUpUrl: '/dashboard/',
+                    redirectUrl: '/dashboard/'
+                });
+            });
+        }
+    }).catch(error => {
+        console.error('Failed to load Clerk:', error);
+    });
+</script>
+{% endblock %}

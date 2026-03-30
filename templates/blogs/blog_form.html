@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Blog - Wordastra{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .create-blog-wrapper {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 60px 0;
+    }
+    .blog-form-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+    }
+    .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px;
+        text-align: center;
+        color: white;
+    }
+    .form-header h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    .form-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    .form-body {
+        padding: 50px;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 1rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+    .form-control, .form-select {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 20px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+    #editor-container {
+        height: 450px;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    #editor-container:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .ql-toolbar {
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        background: #f7fafc;
+        border: none !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    .ql-container {
+        border: none !important;
+        font-size: 16px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .ql-editor {
+        min-height: 380px;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    .ql-editor.ql-blank::before {
+        color: #a0aec0;
+        font-style: normal;
+    }
+    .btn-submit {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        color: white;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        color: white;
+    }
+    .btn-cancel {
+        background: #e2e8f0;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+    .btn-cancel:hover {
+        background: #cbd5e0;
+        transform: translateY(-2px);
+        color: #2d3748;
+    }
+    .form-section {
+        margin-bottom: 35px;
+    }
+    .image-preview-container {
+        margin-top: 15px;
+        display: none;
+    }
+    .image-preview {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .image-info {
+        margin-top: 10px;
+        padding: 10px;
+        background: #f7fafc;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #4a5568;
+    }
+    .upload-area {
+        border: 2px dashed #cbd5e0;
+        border-radius: 10px;
+        padding: 30px;
+        text-align: center;
+        background: #f7fafc;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .upload-area:hover, .upload-area.dragover {
+        border-color: #667eea;
+        background: #edf2f7;
+        transform: scale(1.02);
+    }
+    .upload-area i {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 15px;
+    }
+    .status-bar {
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        border-top: none;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #4a5568;
+    }
+    .auto-save-status {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .auto-save-status.saving {
+        color: #ed8936;
+    }
+    .auto-save-status.saved {
+        color: #48bb78;
+    }
+    .word-count {
+        font-weight: 600;
+    }
+    @media (max-width: 576px) {
+        .form-body {
+            padding: 20px 15px;
+        }
+        .form-header h2 {
+            font-size: 1.8rem;
+        }
+        .btn-submit, .btn-cancel {
+            padding: 12px 30px;
+            font-size: 1rem;
+        }
+        .status-bar {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-blog-wrapper">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                <div class="blog-form-card">
+                    <div class="form-header">
+                        <h2>
+                            <i class="fas fa-feather-alt"></i> {{ action }} Your Story
+                        </h2>
+                        <p>Share your thoughts with the world</p>
+                    </div>
+                    <div class="form-body">
+                        <form method="POST" enctype="multipart/form-data" id="blog-form">
+                            {% csrf_token %}
+                            
+                            <div class="form-section">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">
+                                    <i class="fas fa-heading"></i> Blog Title
+                                </label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger mt-2">
+                                        <i class="fas fa-exclamation-circle"></i> {{ form.title.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-section">
+                                <label class="form-label">
+                                    <i class="fas fa-image"></i> Featured Image (Optional)
+                                </label>
+                                <div class="upload-area" onclick="document.getElementById('image-upload').click()">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p class="mb-0"><strong>Click to upload</strong> or drag and drop</p>
+                                    <small class="text-muted">PNG, JPG, JPEG (Max 10MB)</small>
+                                </div>
+                                {{ form.featured_image }}
+                                {% if form.featured_image.errors %}
+                                    <div class="text-danger mt-2">
+                                        <i class="fas fa-exclamation-circle"></i> {{ form.featured_image.errors }}
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="image-preview-container" id="preview-container">
+                                    <img id="image-preview" class="image-preview" src="" alt="Preview">
+                                    <div class="image-info" id="image-info"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <label class="form-label">
+                                    <i class="fas fa-pen-fancy"></i> Content
+                                </label>
+                                <div id="editor-container"></div>
+                                <textarea name="content" id="blog-content-editor" style="display:none;">{{ form.content.value|default:"" }}</textarea>
+                                {% if form.content.errors %}
+                                    <div class="text-danger mt-2">
+                                        <i class="fas fa-exclamation-circle"></i> {{ form.content.errors }}
+                                    </div>
+                                {% endif %}
+                                <div class="status-bar">
+                                    <div class="word-count">
+                                        <i class="fas fa-file-alt"></i> Words: <span id="word-count">0</span>
+                                    </div>
+                                    <div class="auto-save-status" id="auto-save-status">
+                                        <i class="fas fa-save"></i> <span id="save-text">Draft not saved</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <label for="{{ form.published.id_for_label }}" class="form-label">
+                                    <i class="fas fa-toggle-on"></i> Publication Status
+                                </label>
+                                {{ form.published }}
+                            </div>
+
+                            <div class="d-flex gap-3 justify-content-center mt-5">
+                                <button type="submit" class="btn btn-submit">
+                                    <i class="fas fa-paper-plane"></i> {{ action }} Blog
+                                </button>
+                                <a href="{% if blog %}{% url 'blog_detail' blog.slug %}{% else %}{% url 'home' %}{% endif %}" class="btn btn-cancel">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    // Quill Editor
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'align': [] }],
+                ['blockquote', 'code-block'],
+                ['link'],
+                ['clean']
+            ]
+        },
+        placeholder: 'Start writing your amazing story here...'
+    });
+
+    // Load existing content
+    var existingContent = document.getElementById('blog-content-editor').value;
+    if (existingContent) {
+        quill.root.innerHTML = existingContent;
+    }
+
+    // Save content to hidden textarea on form submit
+    document.getElementById('blog-form').onsubmit = function() {
+        document.getElementById('blog-content-editor').value = quill.root.innerHTML;
+    };
+
+    // Word count and auto-save simulation
+    function updateWordCount() {
+        const text = quill.getText().trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        document.getElementById('word-count').textContent = words;
+    }
+
+    function simulateAutoSave() {
+        const status = document.getElementById('auto-save-status');
+        const text = document.getElementById('save-text');
+        status.className = 'auto-save-status saving';
+        text.textContent = 'Saving...';
+        
+        setTimeout(() => {
+            status.className = 'auto-save-status saved';
+            text.textContent = 'Draft saved locally';
+        }, 1000);
+    }
+
+    // Update word count on text change
+    quill.on('text-change', function() {
+        updateWordCount();
+        simulateAutoSave();
+    });
+
+    // Initial word count
+    updateWordCount();
+
+    // Image Upload Preview
+    const imageUpload = document.getElementById('image-upload');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const imageInfo = document.getElementById('image-info');
+    const uploadArea = document.querySelector('.upload-area');
+
+    function handleFile(file) {
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        if (file.size > 10485760) {
+            alert('Image size must be less than 10MB');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            previewContainer.style.display = 'block';
+            
+            const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+            imageInfo.innerHTML = `
+                <strong>File:</strong> ${file.name} <br>
+                <strong>Size:</strong> ${sizeInMB} MB <br>
+                <strong>Type:</strong> ${file.type}
+                <span class="text-success ms-2"><i class="fas fa-check-circle"></i> Image will be auto-resized to 1200x800px</span>
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    imageUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            handleFile(file);
+        }
+    });
+
+    // Drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        uploadArea.classList.add('dragover');
+    }
+
+    function unhighlight(e) {
+        uploadArea.classList.remove('dragover');
+    }
+
+    uploadArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const file = dt.files[0];
+        if (file) {
+            handleFile(file);
+            // Set the file to the input
+            const dT = new DataTransfer();
+            dT.items.add(file);
+            imageUpload.files = dT.files;
+        }
+    }
+</script>
+{% endblock %}

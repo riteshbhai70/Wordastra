@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ blog.title }} - Wordastra{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <article class="blog-post">
+                <header class="mb-4">
+                    {% if blog.featured_image %}
+                    <div class="mb-4">
+                        <img src="{{ blog.featured_image.url }}" alt="{{ blog.title }}" class="img-fluid rounded shadow" style="width: 100%; max-height: 500px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                    <h1 class="display-5 fw-bold">{{ blog.title }}</h1>
+                    <div class="text-muted mb-3">
+                        <i class="fas fa-user"></i> By {{ blog.author.username }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-calendar"></i> {{ blog.created_at|date:"F d, Y" }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-eye"></i> {{ blog.views }} views
+                    </div>
+                    <div class="d-flex gap-2 mb-3">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'blog_like' blog.slug %}" class="btn btn-sm {% if is_liked %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                <i class="fas fa-heart"></i> {{ blog.total_likes }}
+                            </a>
+                        {% else %}
+                            <span class="btn btn-sm btn-outline-danger disabled">
+                                <i class="fas fa-heart"></i> {{ blog.total_likes }}
+                            </span>
+                        {% endif %}
+                        
+                        {% if user == blog.author or user.is_staff %}
+                            <a href="{% url 'blog_edit' blog.slug %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'blog_delete' blog.slug %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        {% endif %}
+                    </div>
+                </header>
+
+                <div class="blog-content mb-5">
+                    {{ blog.content|safe }}
+                </div>
+            </article>
+
+            <hr class="my-5">
+
+            <section class="comments-section">
+                <h3 class="mb-4">
+                    <i class="fas fa-comments"></i> Comments ({{ comments.count }})
+                </h3>
+
+                {% if user.is_authenticated %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Add a Comment</h5>
+                            <form method="POST">
+                                {% csrf_token %}
+                                {{ comment_form.content }}
+                                <button type="submit" class="btn btn-primary mt-2">
+                                    <i class="fas fa-paper-plane"></i> Post Comment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Please <a href="{% url 'login' %}">login</a> to comment.
+                    </div>
+                {% endif %}
+
+                <div class="comments-list">
+                    {% for comment in comments %}
+                        {% if not comment.parent %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-user-circle"></i> {{ comment.author.username }}
+                                        </h6>
+                                        <small class="text-muted">{{ comment.created_at|date:"F d, Y - g:i A" }}</small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        {% if user.is_authenticated %}
+                                            <a href="{% url 'comment_like' comment.id %}" class="btn btn-sm {% if comment.id in liked_comment_ids %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                                <i class="fas fa-heart"></i> {{ comment.total_likes }}
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="toggleReplyForm({{ comment.id }})">
+                                                <i class="fas fa-reply"></i> Reply
+                                            </button>
+                                        {% else %}
+                                            <span class="btn btn-sm btn-outline-danger disabled">
+                                                <i class="fas fa-heart"></i> {{ comment.total_likes }}
+                                            </span>
+                                        {% endif %}
+                                        {% if user == comment.author or user.is_staff %}
+                                            <a href="{% url 'comment_delete' comment.id %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <p class="mt-2 mb-0">{{ comment.content }}</p>
+                                
+                                <!-- Reply Form -->
+                                {% if user.is_authenticated %}
+                                <div id="reply-form-{{ comment.id }}" class="mt-3" style="display: none;">
+                                    <form method="POST" action="{% url 'comment_reply' comment.id %}">
+                                        {% csrf_token %}
+                                        <div class="input-group">
+                                            <textarea name="content" class="form-control" rows="2" placeholder="Write your reply..." required></textarea>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Replies -->
+                            {% for reply in comment.replies.all %}
+                            <div class="card mt-2 ms-4 border-start border-primary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-user-circle"></i> {{ reply.author.username }}
+                                            </h6>
+                                            <small class="text-muted">{{ reply.created_at|date:"F d, Y - g:i A" }}</small>
+                                        </div>
+                                        <div class="d-flex gap-1">
+                                            {% if user.is_authenticated %}
+                                                <a href="{% url 'comment_like' reply.id %}" class="btn btn-sm {% if reply.id in liked_comment_ids %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                                    <i class="fas fa-heart"></i> {{ reply.total_likes }}
+                                                </a>
+                                            {% else %}
+                                                <span class="btn btn-sm btn-outline-danger disabled">
+                                                    <i class="fas fa-heart"></i> {{ reply.total_likes }}
+                                                </span>
+                                            {% endif %}
+                                            {% if user == reply.author or user.is_staff %}
+                                                <a href="{% url 'comment_delete' reply.id %}" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <p class="mt-2 mb-0">{{ reply.content }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% empty %}
+                        <p class="text-muted">No comments yet. Be the first to comment!</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleReplyForm(commentId) {
+    const form = document.getElementById(`reply-form-${commentId}`);
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+    } else {
+        form.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
