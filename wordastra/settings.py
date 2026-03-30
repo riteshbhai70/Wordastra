@@ -5,8 +5,8 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='wordastra-1.onrender.com,localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -94,21 +94,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
-CLERK_PUBLISHABLE_KEY = config('CLERK_PUBLISHABLE_KEY', default='')
-CLERK_SECRET_KEY = config('CLERK_SECRET_KEY', default='')
-CLERK_FRONTEND_API = config('CLERK_FRONTEND_API', default='')
-
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:8000').split(',')
-CORS_ALLOW_CREDENTIALS = True
-
-SESSION_COOKIE_AGE = 3600
-SESSION_SAVE_EVERY_REQUEST = True
-
 # Clerk Authentication Settings
 CLERK_PUBLISHABLE_KEY = config('CLERK_PUBLISHABLE_KEY', default='')
 CLERK_SECRET_KEY = config('CLERK_SECRET_KEY', default='')
 CLERK_FRONTEND_API = config('CLERK_FRONTEND_API', default='')
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://wordastra-1.onrender.com,http://localhost:8000,http://127.0.0.1:8000').split(',')
+CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

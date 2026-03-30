@@ -51,6 +51,7 @@ def blog_detail(request, slug):
     return render(request, 'blogs/blog_detail.html', context)
 
 @login_required
+@login_required
 def blog_create(request):
     if request.method == 'POST':
         form = BlogPostForm(request.POST, request.FILES)
