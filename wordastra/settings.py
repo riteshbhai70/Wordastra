@@ -5,7 +5,7 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='xv4szzn*rn^)*dwgdy)2iokyrv77dcu)pw6*xxzf%!kmqfd^r@')
-DEBUG = config('DEBUG', default=False, cast=bool)  # Back to production setting
+DEBUG = config('DEBUG', default=True, cast=bool)  # Temporarily enable DEBUG to see errors
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='wordastra-1.onrender.com,localhost,127.0.0.1,wordastra.onrender.com').split(',')
 
 INSTALLED_APPS = [
