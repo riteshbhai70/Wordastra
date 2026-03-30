@@ -46,7 +46,7 @@ def login_view(request):
             user.is_active_session = True
             user.save()
             messages.success(request, f'Welcome back, {user.username}!')
-            return redirect('dashboard')
+            return redirect('home')  # Temporarily redirect to home instead of dashboard
         else:
             messages.error(request, 'Invalid username or password.')
     else:
