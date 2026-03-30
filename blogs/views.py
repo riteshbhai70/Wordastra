@@ -6,17 +6,23 @@ from .models import BlogPost, Comment
 from .forms import BlogPostForm, CommentForm
 
 def home(request):
-    query = request.GET.get('q', '')
-    if query:
-        blogs = BlogPost.objects.filter(
-            Q(title__icontains=query) | Q(content__icontains=query),
-            published=1  # Changed from True to 1
-        )
-    else:
-        blogs = BlogPost.objects.filter(published=1)  # Changed from True to 1
-    
-    context = {'blogs': blogs, 'query': query}
-    return render(request, 'blogs/home.html', context)
+    try:
+        query = request.GET.get('q', '')
+        if query:
+            blogs = BlogPost.objects.filter(
+                Q(title__icontains=query) | Q(content__icontains=query),
+                published=1
+            )
+        else:
+            blogs = BlogPost.objects.filter(published=1)
+        
+        context = {'blogs': blogs, 'query': query}
+        return render(request, 'blogs/home.html', context)
+    except Exception as e:
+        import logging
+        logging.error(f"Error in home view: {e}")
+        # Return a simple error page for debugging
+        return render(request, 'blogs/home.html', {'blogs': [], 'query': '', 'error': str(e)})
 
 def blog_detail(request, slug):
     blog = get_object_or_404(BlogPost, slug=slug)
@@ -50,7 +56,6 @@ def blog_detail(request, slug):
     }
     return render(request, 'blogs/blog_detail.html', context)
 
-@login_required
 @login_required
 def blog_create(request):
     if request.method == 'POST':
@@ -103,7 +108,34 @@ def blog_delete(request, slug):
 from django.http import JsonResponse
 
 def health_check(request):
-    return JsonResponse({'status': 'ok'})
+    try:
+        # Test database connection
+        from django.db import connection
+        cursor = connection.cursor()
+        
+        # Test user model
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user_count = User.objects.count()
+        
+        # Test blog model
+        blog_count = BlogPost.objects.count()
+        
+        return JsonResponse({
+            'status': 'ok',
+            'database': 'connected',
+            'users': user_count,
+            'blogs': blog_count,
+            'debug': settings.DEBUG,
+            'secret_key_set': bool(settings.SECRET_KEY and settings.SECRET_KEY != 'django-insecure-change-this-in-production'),
+            'allowed_hosts': settings.ALLOWED_HOSTS,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'debug': settings.DEBUG,
+        }, status=500)
 
 @login_required
 def blog_like(request, slug):

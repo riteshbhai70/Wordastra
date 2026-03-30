@@ -33,7 +33,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'users.middleware.ClerkAuthMiddleware',
+    # Temporarily disable Clerk middleware to isolate the issue
+    # 'users.middleware.ClerkAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'wordastra.urls'
@@ -64,6 +65,27 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+
+# Logging configuration for production debugging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'users.middleware': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+        },
+    },
 }
 
 AUTH_PASSWORD_VALIDATORS = [
