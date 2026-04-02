@@ -2,6 +2,30 @@
 
 {% block title %}{{ blog.title }} - Wordastra{% endblock %}
 
+{% block extra_css %}
+<meta name="description" content="{{ blog.meta_description|default:blog.content|truncatewords:30|striptags }}">
+<meta name="author" content="{{ blog.author.get_full_name|default:blog.author.username }}">
+<meta property="og:title" content="{{ blog.title }}">
+<meta property="og:description" content="{{ blog.meta_description|default:blog.content|truncatewords:30|striptags }}">
+<meta property="og:type" content="article">
+{% if blog.featured_image %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ blog.featured_image.url }}">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ blog.title }}">
+<meta name="twitter:description" content="{{ blog.meta_description|default:blog.content|truncatewords:30|striptags }}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ blog.title }}",
+  "author": {"@type": "Person", "name": "{{ blog.author.get_full_name|default:blog.author.username }}"},
+  "datePublished": "{{ blog.created_at|date:'c' }}",
+  "dateModified": "{{ blog.updated_at|date:'c' }}"
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="row">
@@ -20,7 +44,25 @@
                         <i class="fas fa-calendar"></i> {{ blog.created_at|date:"F d, Y" }}
                         <span class="mx-2">|</span>
                         <i class="fas fa-eye"></i> {{ blog.views }} views
+                        {% if blog.read_time %}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-clock"></i> {{ blog.read_time }} min read
+                        {% endif %}
                     </div>
+                    {% if blog.category or blog.tags.all %}
+                    <div class="mb-3">
+                        {% if blog.category %}
+                        <a href="{% url 'home' %}?category={{ blog.category.slug }}" class="badge bg-secondary text-decoration-none me-1">
+                            <i class="fas fa-folder"></i> {{ blog.category.name }}
+                        </a>
+                        {% endif %}
+                        {% for tag in blog.tags.all %}
+                        <a href="{% url 'home' %}?tag={{ tag.slug }}" class="badge bg-light text-dark border text-decoration-none me-1">
+                            #{{ tag.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                     <div class="d-flex gap-2 mb-3">
                         {% if user.is_authenticated %}
                             <a href="{% url 'blog_like' blog.slug %}" class="btn btn-sm {% if is_liked %}btn-danger{% else %}btn-outline-danger{% endif %}">
@@ -44,7 +86,7 @@
                 </header>
 
                 <div class="blog-content mb-5">
-                    {{ blog.content|safe }}
+                    {{ blog.content|linebreaks }}
                 </div>
             </article>
 
@@ -164,6 +206,30 @@
                     {% endfor %}
                 </div>
             </section>
+
+            {% if related_posts %}
+            <section class="mt-5">
+                <h4 class="mb-3"><i class="fas fa-book-open"></i> Related Posts</h4>
+                <div class="row">
+                    {% for related in related_posts %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            {% if related.featured_image %}
+                            <img src="{{ related.featured_image.url }}" class="card-img-top" alt="{{ related.title }}" style="height:120px;object-fit:cover;" loading="lazy">
+                            {% endif %}
+                            <div class="card-body">
+                                <h6 class="card-title">{{ related.title }}</h6>
+                                <small class="text-muted">by {{ related.author.username }}</small>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <a href="{% url 'blog_detail' related.slug %}" class="btn btn-sm btn-outline-primary w-100">Read</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
         </div>
     </div>
 </div>

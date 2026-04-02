@@ -1,11 +1,19 @@
 {% extends 'base.html' %}
 
-{% block title %}Home - Wordastra{% endblock %}
+{% block title %}Home - Wordastra | Discover Amazing Stories{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="Wordastra - Discover amazing stories, insights, and ideas from our community of writers.">
+<meta property="og:title" content="Wordastra - Blog Platform">
+<meta property="og:description" content="Discover amazing stories, insights, and ideas from our community of writers.">
+<meta property="og:type" content="website">
+{% endblock %}
 
 {% block content %}
 <div class="container">
+    <!-- Hero section -->
     <div class="row mb-4">
-        <div class="col-md-12">
+        <div class="col-12">
             <div class="jumbotron bg-light p-5 rounded">
                 <h1 class="display-4">Welcome to Wordastra</h1>
                 <p class="lead">Discover amazing stories, insights, and ideas from our community of writers.</p>
@@ -21,20 +29,78 @@
         </div>
     </div>
 
+    <!-- Featured blogs -->
+    {% if featured_blogs %}
     <div class="row mb-4">
-        <div class="col-md-12">
-            <form method="GET" class="d-flex">
-                <input class="form-control me-2" type="search" name="q" placeholder="Search blogs..." value="{{ query }}">
-                <button class="btn btn-outline-primary" type="submit">
-                    <i class="fas fa-search"></i> Search
-                </button>
+        <div class="col-12">
+            <h4 class="mb-3"><i class="fas fa-star text-warning"></i> Featured Posts</h4>
+        </div>
+        {% for blog in featured_blogs %}
+        <div class="col-md-4 mb-3">
+            <div class="card border-warning h-100 shadow-sm">
+                {% if blog.featured_image %}
+                <img src="{{ blog.featured_image.url }}" class="card-img-top" alt="{{ blog.title }}" style="height:160px;object-fit:cover;">
+                {% endif %}
+                <div class="card-body">
+                    <span class="badge bg-warning text-dark mb-1"><i class="fas fa-star"></i> Featured</span>
+                    <h6 class="card-title">{{ blog.title }}</h6>
+                    <small class="text-muted">by {{ blog.author.username }}</small>
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="{% url 'blog_detail' blog.slug %}" class="btn btn-sm btn-outline-warning w-100">Read More</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Search & filters -->
+    <div class="row mb-3">
+        <div class="col-md-7 mb-2">
+            <form method="GET" class="d-flex" role="search">
+                {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+                {% if current_tag %}<input type="hidden" name="tag" value="{{ current_tag }}">{% endif %}
+                <input class="form-control me-2" type="search" name="q" placeholder="Search blogs..." value="{{ query }}" aria-label="Search">
+                <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search"></i></button>
             </form>
         </div>
+        <div class="col-md-3 mb-2">
+            <select class="form-select" onchange="window.location='?sort='+this.value+'{% if query %}&q={{ query }}{% endif %}'">
+                <option value="newest" {% if current_sort == 'newest' or not current_sort %}selected{% endif %}>Newest</option>
+                <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>Most Viewed</option>
+                <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+            </select>
+        </div>
+        {% if user.is_authenticated %}
+        <div class="col-md-2 mb-2">
+            <a href="{% url 'blog_create' %}" class="btn btn-success w-100">
+                <i class="fas fa-plus"></i> Write
+            </a>
+        </div>
+        {% endif %}
     </div>
 
+    <!-- Category filter pills -->
+    {% if categories %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{% url 'home' %}{% if query %}?q={{ query }}{% endif %}" class="btn btn-sm {% if not current_category %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1 mb-1">All</a>
+            {% for cat in categories %}
+            <a href="?category={{ cat.slug }}{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == cat.slug %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1 mb-1">
+                {{ cat.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Blog grid -->
     <div class="row">
-        <div class="col-md-12">
-            <h2 class="mb-4">Latest Blog Posts</h2>
+        <div class="col-12">
+            <h2 class="mb-4">
+                {% if query %}Search results for "{{ query }}"{% else %}Latest Blog Posts{% endif %}
+            </h2>
         </div>
     </div>
 
@@ -44,26 +110,29 @@
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100 shadow-sm">
                         {% if blog.featured_image %}
-                        <img src="{{ blog.featured_image.url }}" class="card-img-top" alt="{{ blog.title }}" style="height: 200px; object-fit: cover;">
+                        <img src="{{ blog.featured_image.url }}" class="card-img-top" alt="{{ blog.title }}" style="height:200px;object-fit:cover;" loading="lazy">
                         {% endif %}
                         <div class="card-body">
+                            {% if blog.category %}
+                            <span class="badge bg-secondary mb-1">{{ blog.category.name }}</span>
+                            {% endif %}
+                            {% if blog.featured %}
+                            <span class="badge bg-warning text-dark mb-1"><i class="fas fa-star"></i></span>
+                            {% endif %}
                             <h5 class="card-title">{{ blog.title }}</h5>
-                            <p class="card-text text-muted">
-                                {{ blog.content|truncatewords:20|striptags }}
-                            </p>
+                            <p class="card-text text-muted">{{ blog.content|truncatewords:20|striptags }}</p>
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-user"></i> {{ blog.author.username }}
-                                </small>
-                                <small class="text-muted">
-                                    <i class="fas fa-calendar"></i> {{ blog.created_at|date:"M d, Y" }}
-                                </small>
+                                <small class="text-muted"><i class="fas fa-user"></i> {{ blog.author.username }}</small>
+                                <small class="text-muted"><i class="fas fa-calendar"></i> {{ blog.created_at|date:"M d, Y" }}</small>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
                                     <i class="fas fa-heart"></i> {{ blog.total_likes }}
                                     <i class="fas fa-eye ms-2"></i> {{ blog.views }}
                                     <i class="fas fa-comment ms-2"></i> {{ blog.comments.count }}
+                                    {% if blog.read_time %}
+                                    <i class="fas fa-clock ms-2"></i> {{ blog.read_time }} min
+                                    {% endif %}
                                 </small>
                             </div>
                         </div>
@@ -76,7 +145,7 @@
                 </div>
             {% endfor %}
         {% else %}
-            <div class="col-md-12">
+            <div class="col-12">
                 <div class="alert alert-info text-center">
                     <i class="fas fa-info-circle"></i> No blog posts found.
                     {% if user.is_authenticated %}
@@ -86,5 +155,36 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Blog pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

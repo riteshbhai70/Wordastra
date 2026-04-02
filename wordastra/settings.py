@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
 from decouple import config
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='xv4szzn*rn^)*dwgdy)2iokyrv77dcu)pw6*xxzf%!kmqfd^r@')
-DEBUG = config('DEBUG', default=True, cast=bool)  # Temporarily enable DEBUG to see errors
+DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='wordastra-1.onrender.com,localhost,127.0.0.1,wordastra.onrender.com').split(',')
 
 INSTALLED_APPS = [
@@ -58,21 +59,34 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wordastra.wsgi.application'
 
-# Database Configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database Configuration — prefer DATABASE_URL env var (Render/Railway/etc.)
+_database_url = config('DATABASE_URL', default='')
+if _database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(_database_url, conn_max_age=600, ssl_require=not DEBUG)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
-# Logging configuration for production debugging
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
@@ -83,6 +97,10 @@ LOGGING = {
         'users.middleware': {
             'handlers': ['console'],
             'level': 'ERROR',
+        },
+        'users.views': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     },
 }
@@ -107,7 +125,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Increase upload size limits
+# Upload size limits
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 
@@ -119,6 +137,7 @@ AUTH_USER_MODEL = 'users.User'
 CLERK_PUBLISHABLE_KEY = config('CLERK_PUBLISHABLE_KEY', default='')
 CLERK_SECRET_KEY = config('CLERK_SECRET_KEY', default='')
 CLERK_FRONTEND_API = config('CLERK_FRONTEND_API', default='')
+CLERK_WEBHOOK_SECRET = config('CLERK_WEBHOOK_SECRET', default='')
 
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://wordastra-1.onrender.com,http://localhost:8000,http://127.0.0.1:8000').split(',')
 CORS_ALLOW_CREDENTIALS = True
@@ -127,6 +146,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 # Security settings for production
