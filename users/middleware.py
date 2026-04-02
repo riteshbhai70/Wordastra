@@ -82,3 +82,5 @@ class ClerkAuthMiddleware:
                 logging.error(f"Clerk auth error: {e}")
                 pass
 
+        return self.get_response(request)
+
