@@ -2,163 +2,260 @@
 
 {% block title %}{{ blog.title }} - Wordastra{% endblock %}
 
+{% block meta_description %}{{ blog.excerpt|default:blog.content|truncatechars:160|striptags }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ blog.title }}{% endblock %}
+{% block og_description %}{{ blog.excerpt|default:blog.content|truncatechars:160|striptags }}{% endblock %}
+{% if blog.featured_image %}{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{{ blog.featured_image.url }}{% endblock %}{% endif %}
+
+{% block twitter_title %}{{ blog.title }}{% endblock %}
+{% block twitter_description %}{{ blog.excerpt|default:blog.content|truncatechars:160|striptags }}{% endblock %}
+{% if blog.featured_image %}{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{{ blog.featured_image.url }}{% endblock %}{% endif %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ blog.title|escapejs }}",
+  "description": "{{ blog.excerpt|default:blog.content|truncatechars:160|striptags|escapejs }}",
+  "datePublished": "{{ blog.created_at|date:'c' }}",
+  "dateModified": "{{ blog.updated_at|date:'c' }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ blog.author.get_full_name|default:blog.author.username|escapejs }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Wordastra",
+    "url": "{{ request.scheme }}://{{ request.get_host }}"
+  },
+  "url": "{{ request.build_absolute_uri }}",
+  "interactionStatistic": [
+    {
+      "@type": "InteractionCounter",
+      "interactionType": "https://schema.org/LikeAction",
+      "userInteractionCount": {{ blog.total_likes }}
+    },
+    {
+      "@type": "InteractionCounter",
+      "interactionType": "https://schema.org/CommentAction",
+      "userInteractionCount": {{ comments.count }}
+    }
+  ]{% if blog.featured_image %},
+  "image": "{{ request.scheme }}://{{ request.get_host }}{{ blog.featured_image.url }}"{% endif %}
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ blog.title|truncatechars:50 }}</li>
+        </ol>
+    </nav>
+
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <article class="blog-post">
+            <article class="blog-post" itemscope itemtype="https://schema.org/BlogPosting">
                 <header class="mb-4">
                     {% if blog.featured_image %}
                     <div class="mb-4">
-                        <img src="{{ blog.featured_image.url }}" alt="{{ blog.title }}" class="img-fluid rounded shadow" style="width: 100%; max-height: 500px; object-fit: cover;">
+                        <img src="{{ blog.featured_image.url }}" alt="{{ blog.title }}" class="img-fluid rounded shadow"
+                             style="width: 100%; max-height: 500px; object-fit: cover;" loading="lazy"
+                             itemprop="image">
                     </div>
                     {% endif %}
-                    <h1 class="display-5 fw-bold">{{ blog.title }}</h1>
+                    <h1 class="display-5 fw-bold" itemprop="headline">{{ blog.title }}</h1>
                     <div class="text-muted mb-3">
-                        <i class="fas fa-user"></i> By {{ blog.author.username }}
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-calendar"></i> {{ blog.created_at|date:"F d, Y" }}
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-eye"></i> {{ blog.views }} views
+                        <span itemprop="author" itemscope itemtype="https://schema.org/Person">
+                            <i class="fas fa-user" aria-hidden="true"></i>
+                            By <span itemprop="name">{{ blog.author.get_full_name|default:blog.author.username }}</span>
+                        </span>
+                        <span class="mx-2" aria-hidden="true">|</span>
+                        <time itemprop="datePublished" datetime="{{ blog.created_at|date:'c' }}">
+                            <i class="fas fa-calendar" aria-hidden="true"></i> {{ blog.created_at|date:"F d, Y" }}
+                        </time>
+                        <span class="mx-2" aria-hidden="true">|</span>
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                        <span aria-label="{{ blog.views }} views">{{ blog.views }} views</span>
+                        <span class="mx-2" aria-hidden="true">|</span>
+                        <i class="fas fa-clock" aria-hidden="true"></i>
+                        <span aria-label="{{ reading_time }} minute read">{{ reading_time }} min read</span>
                     </div>
-                    <div class="d-flex gap-2 mb-3">
+                    <div class="d-flex gap-2 mb-3 flex-wrap">
                         {% if user.is_authenticated %}
-                            <a href="{% url 'blog_like' blog.slug %}" class="btn btn-sm {% if is_liked %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                                <i class="fas fa-heart"></i> {{ blog.total_likes }}
+                            <a href="{% url 'blog_like' blog.slug %}"
+                               class="btn btn-sm {% if is_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                               aria-label="{% if is_liked %}Unlike{% else %}Like{% endif %} this post ({{ blog.total_likes }} likes)">
+                                <i class="fas fa-heart" aria-hidden="true"></i> {{ blog.total_likes }}
                             </a>
                         {% else %}
-                            <span class="btn btn-sm btn-outline-danger disabled">
-                                <i class="fas fa-heart"></i> {{ blog.total_likes }}
+                            <span class="btn btn-sm btn-outline-danger" aria-label="{{ blog.total_likes }} likes">
+                                <i class="fas fa-heart" aria-hidden="true"></i> {{ blog.total_likes }}
                             </span>
                         {% endif %}
-                        
+
+                        <!-- Social share buttons -->
+                        <a href="https://twitter.com/intent/tweet?url={{ request.build_absolute_uri|urlencode }}&text={{ blog.title|urlencode }}"
+                           class="btn btn-sm btn-outline-info" target="_blank" rel="noopener noreferrer"
+                           aria-label="Share on Twitter">
+                            <i class="fab fa-twitter" aria-hidden="true"></i> Tweet
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}"
+                           class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer"
+                           aria-label="Share on Facebook">
+                            <i class="fab fa-facebook" aria-hidden="true"></i> Share
+                        </a>
+
                         {% if user == blog.author or user.is_staff %}
                             <a href="{% url 'blog_edit' blog.slug %}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-edit"></i> Edit
+                                <i class="fas fa-edit" aria-hidden="true"></i> Edit
                             </a>
                             <a href="{% url 'blog_delete' blog.slug %}" class="btn btn-sm btn-danger">
-                                <i class="fas fa-trash"></i> Delete
+                                <i class="fas fa-trash" aria-hidden="true"></i> Delete
                             </a>
                         {% endif %}
                     </div>
                 </header>
 
-                <div class="blog-content mb-5">
-                    {{ blog.content|safe }}
+                <div class="blog-content mb-5" itemprop="articleBody">
+                    {{ blog.content|linebreaks }}
                 </div>
             </article>
 
             <hr class="my-5">
 
-            <section class="comments-section">
-                <h3 class="mb-4">
-                    <i class="fas fa-comments"></i> Comments ({{ comments.count }})
-                </h3>
+            <section class="comments-section" aria-label="Comments">
+                <h2 class="mb-4">
+                    <i class="fas fa-comments" aria-hidden="true"></i> Comments ({{ comments.count }})
+                </h2>
 
                 {% if user.is_authenticated %}
                     <div class="card mb-4">
                         <div class="card-body">
-                            <h5 class="card-title">Add a Comment</h5>
-                            <form method="POST">
+                            <h3 class="card-title h5">Add a Comment</h3>
+                            <form method="POST" novalidate>
                                 {% csrf_token %}
-                                {{ comment_form.content }}
+                                <div class="mb-2">
+                                    <label for="{{ comment_form.content.id_for_label }}" class="visually-hidden">Your comment</label>
+                                    {{ comment_form.content }}
+                                </div>
                                 <button type="submit" class="btn btn-primary mt-2">
-                                    <i class="fas fa-paper-plane"></i> Post Comment
+                                    <i class="fas fa-paper-plane" aria-hidden="true"></i> Post Comment
                                 </button>
                             </form>
                         </div>
                     </div>
                 {% else %}
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
+                        <i class="fas fa-info-circle" aria-hidden="true"></i>
                         Please <a href="{% url 'login' %}">login</a> to comment.
                     </div>
                 {% endif %}
 
                 <div class="comments-list">
                     {% for comment in comments %}
-                        {% if not comment.parent %}
-                        <div class="card mb-3">
+                        <div class="card mb-3" id="comment-{{ comment.id }}">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1">
-                                            <i class="fas fa-user-circle"></i> {{ comment.author.username }}
-                                        </h6>
-                                        <small class="text-muted">{{ comment.created_at|date:"F d, Y - g:i A" }}</small>
+                                        <h4 class="h6 mb-1">
+                                            <i class="fas fa-user-circle" aria-hidden="true"></i> {{ comment.author.username }}
+                                        </h4>
+                                        <time class="text-muted small" datetime="{{ comment.created_at|date:'c' }}">
+                                            {{ comment.created_at|date:"F d, Y - g:i A" }}
+                                        </time>
                                     </div>
                                     <div class="d-flex gap-1">
                                         {% if user.is_authenticated %}
-                                            <a href="{% url 'comment_like' comment.id %}" class="btn btn-sm {% if comment.id in liked_comment_ids %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                                                <i class="fas fa-heart"></i> {{ comment.total_likes }}
+                                            <a href="{% url 'comment_like' comment.id %}"
+                                               class="btn btn-sm {% if comment.id in liked_comment_ids %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                                               aria-label="{% if comment.id in liked_comment_ids %}Unlike{% else %}Like{% endif %} comment">
+                                                <i class="fas fa-heart" aria-hidden="true"></i> {{ comment.total_likes }}
                                             </a>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="toggleReplyForm({{ comment.id }})">
-                                                <i class="fas fa-reply"></i> Reply
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    onclick="toggleReplyForm({{ comment.id }})"
+                                                    aria-expanded="false"
+                                                    aria-controls="reply-form-{{ comment.id }}">
+                                                <i class="fas fa-reply" aria-hidden="true"></i> Reply
                                             </button>
                                         {% else %}
-                                            <span class="btn btn-sm btn-outline-danger disabled">
-                                                <i class="fas fa-heart"></i> {{ comment.total_likes }}
+                                            <span class="btn btn-sm btn-outline-danger" aria-label="{{ comment.total_likes }} likes">
+                                                <i class="fas fa-heart" aria-hidden="true"></i> {{ comment.total_likes }}
                                             </span>
                                         {% endif %}
                                         {% if user == comment.author or user.is_staff %}
-                                            <a href="{% url 'comment_delete' comment.id %}" class="btn btn-sm btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
+                                            <a href="{% url 'comment_delete' comment.id %}" class="btn btn-sm btn-outline-danger"
+                                               aria-label="Delete comment by {{ comment.author.username }}">
+                                                <i class="fas fa-trash" aria-hidden="true"></i>
                                             </a>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <p class="mt-2 mb-0">{{ comment.content }}</p>
-                                
+                                <p class="mt-2 mb-0">{{ comment.content|linebreaks }}</p>
+
                                 <!-- Reply Form -->
                                 {% if user.is_authenticated %}
                                 <div id="reply-form-{{ comment.id }}" class="mt-3" style="display: none;">
-                                    <form method="POST" action="{% url 'comment_reply' comment.id %}">
+                                    <form method="POST" action="{% url 'comment_reply' comment.id %}" novalidate>
                                         {% csrf_token %}
                                         <div class="input-group">
-                                            <textarea name="content" class="form-control" rows="2" placeholder="Write your reply..." required></textarea>
+                                            <label for="reply-content-{{ comment.id }}" class="visually-hidden">Reply to {{ comment.author.username }}</label>
+                                            <textarea id="reply-content-{{ comment.id }}" name="content"
+                                                      class="form-control" rows="2"
+                                                      placeholder="Reply to {{ comment.author.username }}…" required></textarea>
                                             <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-paper-plane"></i>
+                                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
                                             </button>
                                         </div>
                                     </form>
                                 </div>
                                 {% endif %}
                             </div>
-                            
+
                             <!-- Replies -->
                             {% for reply in comment.replies.all %}
-                            <div class="card mt-2 ms-4 border-start border-primary">
+                            <div class="card mt-2 ms-4 border-start border-primary" id="comment-{{ reply.id }}">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div>
-                                            <h6 class="mb-1">
-                                                <i class="fas fa-user-circle"></i> {{ reply.author.username }}
-                                            </h6>
-                                            <small class="text-muted">{{ reply.created_at|date:"F d, Y - g:i A" }}</small>
+                                            <h4 class="h6 mb-1">
+                                                <i class="fas fa-user-circle" aria-hidden="true"></i> {{ reply.author.username }}
+                                            </h4>
+                                            <time class="text-muted small" datetime="{{ reply.created_at|date:'c' }}">
+                                                {{ reply.created_at|date:"F d, Y - g:i A" }}
+                                            </time>
                                         </div>
                                         <div class="d-flex gap-1">
                                             {% if user.is_authenticated %}
-                                                <a href="{% url 'comment_like' reply.id %}" class="btn btn-sm {% if reply.id in liked_comment_ids %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                                                    <i class="fas fa-heart"></i> {{ reply.total_likes }}
+                                                <a href="{% url 'comment_like' reply.id %}"
+                                                   class="btn btn-sm {% if reply.id in liked_comment_ids %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                                                   aria-label="{% if reply.id in liked_comment_ids %}Unlike{% else %}Like{% endif %} reply">
+                                                    <i class="fas fa-heart" aria-hidden="true"></i> {{ reply.total_likes }}
                                                 </a>
                                             {% else %}
-                                                <span class="btn btn-sm btn-outline-danger disabled">
-                                                    <i class="fas fa-heart"></i> {{ reply.total_likes }}
+                                                <span class="btn btn-sm btn-outline-danger" aria-label="{{ reply.total_likes }} likes">
+                                                    <i class="fas fa-heart" aria-hidden="true"></i> {{ reply.total_likes }}
                                                 </span>
                                             {% endif %}
                                             {% if user == reply.author or user.is_staff %}
-                                                <a href="{% url 'comment_delete' reply.id %}" class="btn btn-sm btn-outline-danger">
-                                                    <i class="fas fa-trash"></i>
+                                                <a href="{% url 'comment_delete' reply.id %}" class="btn btn-sm btn-outline-danger"
+                                                   aria-label="Delete reply by {{ reply.author.username }}">
+                                                    <i class="fas fa-trash" aria-hidden="true"></i>
                                                 </a>
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <p class="mt-2 mb-0">{{ reply.content }}</p>
+                                    <p class="mt-2 mb-0">{{ reply.content|linebreaks }}</p>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
-                        {% endif %}
                     {% empty %}
                         <p class="text-muted">No comments yet. Be the first to comment!</p>
                     {% endfor %}
@@ -170,11 +267,14 @@
 
 <script>
 function toggleReplyForm(commentId) {
-    const form = document.getElementById(`reply-form-${commentId}`);
-    if (form.style.display === 'none' || form.style.display === '') {
-        form.style.display = 'block';
-    } else {
-        form.style.display = 'none';
+    const form = document.getElementById('reply-form-' + commentId);
+    const btn = form.previousElementSibling.querySelector('[aria-controls="reply-form-' + commentId + '"]');
+    const isHidden = form.style.display === 'none' || form.style.display === '';
+    form.style.display = isHidden ? 'block' : 'none';
+    if (btn) btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    if (isHidden) {
+        const textarea = form.querySelector('textarea');
+        if (textarea) textarea.focus();
     }
 }
 </script>

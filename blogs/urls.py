@@ -12,4 +12,5 @@ urlpatterns = [
     path('comment/<int:comment_id>/like/', views.comment_like, name='comment_like'),
     path('comment/<int:comment_id>/reply/', views.comment_reply, name='comment_reply'),
     path('health/', views.health_check, name='health_check'),
+    path('robots.txt', views.robots_txt, name='robots_txt'),
 ]

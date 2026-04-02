@@ -3,12 +3,19 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
+from django.contrib.sitemaps.views import sitemap
+from blogs.sitemaps import BlogPostSitemap
+
+sitemaps = {
+    'blogs': BlogPostSitemap,
+}
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('blogs.urls')),
     path('users/', include('users.urls')),
     path('api/', include('blogs.api_urls')),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     # Password reset
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='registration/password_reset_form.html'), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), name='password_reset_done'),

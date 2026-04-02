@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Home - Wordastra{% endblock %}
+{% block title %}{% if query %}Search: {{ query }} - {% endif %}Wordastra - Blog Platform{% endblock %}
+
+{% block meta_description %}{% if query %}Search results for "{{ query }}" on Wordastra blog platform.{% else %}Discover amazing stories, insights, and ideas from our community of writers on Wordastra.{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -11,10 +13,10 @@
                 <p class="lead">Discover amazing stories, insights, and ideas from our community of writers.</p>
                 {% if not user.is_authenticated %}
                     <a class="btn btn-success btn-lg me-2" href="{% url 'register' %}" role="button">
-                        <i class="fas fa-user-plus"></i> Register
+                        <i class="fas fa-user-plus" aria-hidden="true"></i> Register
                     </a>
                     <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">
-                        <i class="fas fa-pen"></i> Login
+                        <i class="fas fa-pen" aria-hidden="true"></i> Login
                     </a>
                 {% endif %}
             </div>
@@ -23,18 +25,34 @@
 
     <div class="row mb-4">
         <div class="col-md-12">
-            <form method="GET" class="d-flex">
-                <input class="form-control me-2" type="search" name="q" placeholder="Search blogs..." value="{{ query }}">
-                <button class="btn btn-outline-primary" type="submit">
-                    <i class="fas fa-search"></i> Search
-                </button>
+            <form method="GET" role="search" aria-label="Search blog posts">
+                <div class="input-group">
+                    <label for="search-input" class="visually-hidden">Search blogs</label>
+                    <input id="search-input" class="form-control" type="search" name="q"
+                           placeholder="Search blogs..." value="{{ query }}" aria-label="Search blogs">
+                    <button class="btn btn-outline-primary" type="submit" aria-label="Submit search">
+                        <i class="fas fa-search" aria-hidden="true"></i> Search
+                    </button>
+                    {% if query %}
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary" aria-label="Clear search">
+                            <i class="fas fa-times" aria-hidden="true"></i> Clear
+                        </a>
+                    {% endif %}
+                </div>
             </form>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-12">
-            <h2 class="mb-4">Latest Blog Posts</h2>
+            <h2 class="mb-4">
+                {% if query %}
+                    Search Results for "<em>{{ query }}</em>"
+                    <small class="fs-5 text-muted">({{ page_obj.paginator.count }} found)</small>
+                {% else %}
+                    Latest Blog Posts
+                {% endif %}
+            </h2>
         </div>
     </div>
 
@@ -42,49 +60,124 @@
         {% if blogs %}
             {% for blog in blogs %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm">
+                    <article class="card h-100 shadow-sm">
                         {% if blog.featured_image %}
-                        <img src="{{ blog.featured_image.url }}" class="card-img-top" alt="{{ blog.title }}" style="height: 200px; object-fit: cover;">
+                        <img src="{{ blog.featured_image.url }}" class="card-img-top"
+                             alt="{{ blog.title }}" style="height: 200px; object-fit: cover;" loading="lazy">
                         {% endif %}
                         <div class="card-body">
-                            <h5 class="card-title">{{ blog.title }}</h5>
+                            <h3 class="card-title h5">
+                                <a href="{% url 'blog_detail' blog.slug %}" class="text-decoration-none text-dark stretched-link">
+                                    {{ blog.title }}
+                                </a>
+                            </h3>
                             <p class="card-text text-muted">
-                                {{ blog.content|truncatewords:20|striptags }}
+                                {{ blog.excerpt|default:blog.content|truncatewords:20|striptags }}
                             </p>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <small class="text-muted">
-                                    <i class="fas fa-user"></i> {{ blog.author.username }}
+                                    <i class="fas fa-user" aria-hidden="true"></i> {{ blog.author.username }}
                                 </small>
                                 <small class="text-muted">
-                                    <i class="fas fa-calendar"></i> {{ blog.created_at|date:"M d, Y" }}
+                                    <time datetime="{{ blog.created_at|date:'c' }}">
+                                        <i class="fas fa-calendar" aria-hidden="true"></i> {{ blog.created_at|date:"M d, Y" }}
+                                    </time>
                                 </small>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
-                                    <i class="fas fa-heart"></i> {{ blog.total_likes }}
-                                    <i class="fas fa-eye ms-2"></i> {{ blog.views }}
-                                    <i class="fas fa-comment ms-2"></i> {{ blog.comments.count }}
+                                    <span aria-label="{{ blog.like_count }} likes">
+                                        <i class="fas fa-heart" aria-hidden="true"></i> {{ blog.like_count }}
+                                    </span>
+                                    <span class="ms-2" aria-label="{{ blog.views }} views">
+                                        <i class="fas fa-eye" aria-hidden="true"></i> {{ blog.views }}
+                                    </span>
+                                    <span class="ms-2" aria-label="{{ blog.comment_count }} comments">
+                                        <i class="fas fa-comment" aria-hidden="true"></i> {{ blog.comment_count }}
+                                    </span>
                                 </small>
                             </div>
                         </div>
-                        <div class="card-footer bg-white">
-                            <a href="{% url 'blog_detail' blog.slug %}" class="btn btn-sm btn-primary w-100">
-                                Read More <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
-                    </div>
+                    </article>
                 </div>
             {% endfor %}
         {% else %}
             <div class="col-md-12">
                 <div class="alert alert-info text-center">
-                    <i class="fas fa-info-circle"></i> No blog posts found.
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'blog_create' %}">Be the first to write!</a>
+                    <i class="fas fa-info-circle" aria-hidden="true"></i>
+                    {% if query %}
+                        No blog posts found for "<strong>{{ query }}</strong>".
+                    {% else %}
+                        No blog posts yet.
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'blog_create' %}">Be the first to write!</a>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
         {% endif %}
     </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Blog post pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}page=1" aria-label="First page">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous page">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-hidden="true">&laquo;&laquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link" aria-hidden="true">&laquo;</span>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next page">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.paginator.num_pages }}" aria-label="Last page">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-hidden="true">&raquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link" aria-hidden="true">&raquo;&raquo;</span>
+                </li>
+            {% endif %}
+        </ul>
+        <p class="text-center text-muted small">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </p>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

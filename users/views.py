@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.db.models import Count, Sum
 from django.utils import timezone
 from .forms import UserRegisterForm, UserLoginForm, ProfileUpdateForm
 
@@ -46,7 +47,7 @@ def login_view(request):
             user.is_active_session = True
             user.save()
             messages.success(request, f'Welcome back, {user.username}!')
-            return redirect('home')  # Temporarily redirect to home instead of dashboard
+            return redirect('home')
         else:
             messages.error(request, 'Invalid username or password.')
     else:
@@ -87,7 +88,7 @@ def profile_view(request):
             password_form = PasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 user = password_form.save()
-                update_session_auth_hash(request, user)  # Important!
+                update_session_auth_hash(request, user)
                 messages.success(request, 'Password changed successfully!')
                 return redirect('profile')
             else:
@@ -110,17 +111,28 @@ def dashboard_view(request):
         return redirect('login')
 
     from blogs.models import BlogPost, Comment
-    user_blogs = BlogPost.objects.filter(author=request.user).order_by('-created_at')
-    recent_comments = Comment.objects.filter(post__author=request.user).order_by('-created_at')[:10]
-    total_likes = sum(blog.likes.count() for blog in user_blogs)
-    total_comments = sum(blog.comments.count() for blog in user_blogs)
+
+    # Use a single aggregated query instead of N+1 loops
+    user_blogs = BlogPost.objects.filter(author=request.user).order_by('-created_at').annotate(
+        comment_count=Count('comments', distinct=True),
+        like_count=Count('likes', distinct=True),
+    )
+
+    aggregates = user_blogs.aggregate(
+        total_likes=Sum('like_count'),
+        total_comments=Sum('comment_count'),
+    )
+
+    recent_comments = Comment.objects.filter(
+        post__author=request.user
+    ).select_related('author', 'post').order_by('-created_at')[:10]
 
     context = {
         'user': request.user,
         'user_blogs': user_blogs,
         'total_blogs': user_blogs.count(),
-        'total_likes': total_likes,
-        'total_comments': total_comments,
+        'total_likes': aggregates['total_likes'] or 0,
+        'total_comments': aggregates['total_comments'] or 0,
         'current_time': timezone.now(),
         'recent_comments': recent_comments,
     }
