@@ -1,10 +1,14 @@
+import logging
+
 import requests
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login
 from django.utils import timezone
-from django.contrib.auth import login
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
 
 class ClerkAuthMiddleware:
     def __init__(self, get_response):
@@ -12,7 +16,7 @@ class ClerkAuthMiddleware:
 
     def __call__(self, request):
         # Skip middleware for certain paths
-        if request.path.startswith('/admin/') or request.path.startswith('/static/') or request.path.startswith('/media/'):
+        if request.path.startswith(('/admin/', '/static/', '/media/')):
             return self.get_response(request)
 
         # Clerk sets the session token in a cookie named '__session'
@@ -26,15 +30,15 @@ class ClerkAuthMiddleware:
 
                 headers = {
                     'Authorization': f'Bearer {settings.CLERK_SECRET_KEY}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 }
 
-                # Verify the session token with correct API endpoint
+                # Verify the session token
                 response = requests.post(
                     'https://api.clerk.com/v1/sessions/verify',
                     headers=headers,
                     json={'token': clerk_session_token},
-                    timeout=5  # Add timeout
+                    timeout=5,
                 )
 
                 if response.status_code == 200:
@@ -42,19 +46,17 @@ class ClerkAuthMiddleware:
                     clerk_user_id = session_data.get('user_id')
 
                     if clerk_user_id:
-                        # Get user details
                         user_response = requests.get(
                             f'https://api.clerk.com/v1/users/{clerk_user_id}',
                             headers=headers,
-                            timeout=5
+                            timeout=5,
                         )
 
                         if user_response.status_code == 200:
                             user_data = user_response.json()
                             email = user_data.get('email_addresses', [{}])[0].get('email_address', '')
-                            first_name = user_data.get('first_name', '')
-                            last_name = user_data.get('last_name', '')
-                            profile_image = user_data.get('profile_image_url', '')
+                            first_name = user_data.get('first_name', '') or ''
+                            last_name = user_data.get('last_name', '') or ''
 
                             user, created = User.objects.get_or_create(
                                 clerk_user_id=clerk_user_id,
@@ -63,7 +65,6 @@ class ClerkAuthMiddleware:
                                     'email': email,
                                     'first_name': first_name,
                                     'last_name': last_name,
-                                    'profile_image': profile_image,
                                 }
                             )
 
@@ -73,12 +74,9 @@ class ClerkAuthMiddleware:
                             user.session_start = timezone.now()
                             user.save()
 
-                            # Log the user in
                             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
             except Exception as e:
-                # Log error but don't break the request
-                import logging
-                logging.error(f"Clerk auth error: {e}")
-                pass
+                logger.error("Clerk auth error: %s", e)
 
+        return self.get_response(request)
