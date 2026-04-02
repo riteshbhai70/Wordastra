@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from .models import BlogPost, Comment
@@ -22,6 +22,7 @@ class BlogCommentModelTests(TestCase):
         qs = Comment.objects.filter(post__author=self.user)
         self.assertIn(comment, qs)
 
+    @override_settings(SECURE_SSL_REDIRECT=False)
     def test_dashboard_view_authenticated_user(self):
         client = Client()
         login = client.login(username='testuser', password='password123')
