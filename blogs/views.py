@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
 from django.db.models import Q
+from django.http import JsonResponse
 from .models import BlogPost, Comment
 from .forms import BlogPostForm, CommentForm
 
@@ -105,7 +107,18 @@ def blog_delete(request, slug):
     
     return render(request, 'blogs/blog_confirm_delete.html', {'blog': blog})
 
-from django.http import JsonResponse
+@login_required
+def blog_like(request, slug):
+    blog = get_object_or_404(BlogPost, slug=slug)
+    
+    if blog.likes.filter(id=request.user.id).exists():
+        blog.likes.remove(request.user)
+        messages.info(request, 'Blog unliked.')
+    else:
+        blog.likes.add(request.user)
+        messages.success(request, 'Blog liked!')
+    
+    return redirect('blog_detail', slug=slug)
 
 def health_check(request):
     try:
