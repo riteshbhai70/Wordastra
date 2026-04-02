@@ -61,11 +61,12 @@ WSGI_APPLICATION = 'wordastra.wsgi.application'
 
 # Database Configuration
 # Uses DATABASE_URL env var when set (PostgreSQL on Render), falls back to SQLite for local dev
+_database_url = config('DATABASE_URL', default='')
 DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
-        ssl_require=not config('DISABLE_SSL', default=False, cast=bool),
+        ssl_require=bool(_database_url) and not config('DISABLE_SSL', default=False, cast=bool),
     )
 }
 
