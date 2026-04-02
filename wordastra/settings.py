@@ -1,11 +1,12 @@
 import os
+import dj_database_url
 from pathlib import Path
 from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='xv4szzn*rn^)*dwgdy)2iokyrv77dcu)pw6*xxzf%!kmqfd^r@')
-DEBUG = config('DEBUG', default=True, cast=bool)  # Temporarily enable DEBUG to see errors
+DEBUG = config('DEBUG', default=False, cast=bool)  # Set DEBUG=True in your local .env for development
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='wordastra-1.onrender.com,localhost,127.0.0.1,wordastra.onrender.com').split(',')
 
 INSTALLED_APPS = [
@@ -60,10 +61,11 @@ WSGI_APPLICATION = 'wordastra.wsgi.application'
 
 # Database Configuration
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 # Logging configuration for production debugging
@@ -129,8 +131,8 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Security settings for production
-if not DEBUG:
+# Security settings for production (only when DATABASE_URL is set, indicating a real deployment)
+if not DEBUG and os.environ.get('DATABASE_URL'):
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
