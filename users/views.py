@@ -157,7 +157,7 @@ def dashboard_view(request):
 @csrf_exempt
 @require_POST
 def clerk_webhook(request):
-    """Handle Clerk webhook events for user synchronisation."""
+    """Handle Clerk webhook events for user synchronization."""
     webhook_secret = getattr(settings, 'CLERK_WEBHOOK_SECRET', '')
 
     if webhook_secret:
