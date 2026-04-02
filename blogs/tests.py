@@ -27,10 +27,10 @@ class BlogCommentModelTests(TestCase):
         login = client.login(username='testuser', password='password123')
         self.assertTrue(login)
 
-        response = client.get(reverse('dashboard'))
+        response = client.get(reverse('dashboard'), secure=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Post')
 
         Comment.objects.create(post=self.post, author=self.user, content='Comment for dashboard')
-        response = client.get(reverse('dashboard'))
+        response = client.get(reverse('dashboard'), secure=True)
         self.assertContains(response, 'Comment for dashboard')
