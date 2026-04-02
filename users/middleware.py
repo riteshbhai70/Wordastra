@@ -80,5 +80,6 @@ class ClerkAuthMiddleware:
                 # Log error but don't break the request
                 import logging
                 logging.error(f"Clerk auth error: {e}")
-                pass
+
+        return self.get_response(request)
 
