@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
 from decouple import config
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='xv4szzn*rn^)*dwgdy)2iokyrv77dcu)pw6*xxzf%!kmqfd^r@')
-DEBUG = config('DEBUG', default=True, cast=bool)  # Temporarily enable DEBUG to see errors
+DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='wordastra-1.onrender.com,localhost,127.0.0.1,wordastra.onrender.com').split(',')
 
 INSTALLED_APPS = [
@@ -59,11 +60,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'wordastra.wsgi.application'
 
 # Database Configuration
+# Uses DATABASE_URL env var when set (PostgreSQL on Render), falls back to SQLite for local dev
+_database_url = config('DATABASE_URL', default='')
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        ssl_require=bool(_database_url) and not config('DISABLE_SSL', default=False, cast=bool),
+    )
 }
 
 # Logging configuration for production debugging
